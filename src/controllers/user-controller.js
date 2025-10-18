@@ -137,7 +137,24 @@ export const catchPokemon = async (req, res) => {
   }
 };
 
-// export const getAllCaptured = (req, res) => {
-//   const data = JSON.parse(fs.readFileSync(dbPath))
-//   res.json(data.captured)
-// }
+export const getAllUsers = (req, res) => {
+  try {
+    const  {users}  = readUsers();
+    console.log(users)
+    res.json(users);
+  } catch (error) {
+    console.error("Error leyendo la DB:", error);
+    res.status(500).json({ error: "No se pudo leer la base de datos" });
+  }
+};
+
+export const ping = (req, res) => {
+  try {
+    res.json({ status: "ok", message: "Backend funcionando ✅" });
+  } catch (error) {
+    console.error("Error en ping:", error);
+    res.status(500).json({ error: "Error en el ping del servidor" });
+  }
+};
+
+

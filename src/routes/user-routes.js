@@ -1,6 +1,6 @@
 // src/routes/user.routes.js
 import { Router } from "express";
-import { searchPok, catchPokemon } from "../controllers/user-controller.js";
+import { searchPok, catchPokemon, getAllUsers, ping } from "../controllers/user-controller.js";
 
 import fs from "fs";
 import path from "path";
@@ -8,6 +8,8 @@ import path from "path";
 const router = Router();
 const dbPath = path.resolve("src/db/db.json");
 
+router.get("/all", getAllUsers); 
+router.get("/ping", ping); 
 // POST /api/users
 router.post("/", (req, res) => {
   const { uid, displayName } = req.body;
@@ -28,6 +30,8 @@ router.post("/", (req, res) => {
       displayName: displayName,
       pokedex: {},
       masterBalls: 2,
+      dailyCatches: 5,
+
     };
 
     data.users.push(user);
