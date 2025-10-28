@@ -20,11 +20,11 @@ export const searchPok = async (req, res) => {
     const { users } = readUsers();
 
     const user = users.find((u) => u.uid === uid);
-    if (!user) return res.status(404).json({ error: "Usuario no encontrado" });
+    if (!user) return res.status(404).json({ error: "User not found" });
 
     // sin intentos disponibles
     if (user.dailyCatches == 0) {
-      return res.status(400).json({ error: "No te quedan intentos hoy" });
+      return res.status(400).json({ error: "No attempts left today" });
     }
 
     // generar pokmon aleatorio
@@ -69,6 +69,12 @@ export const searchPok = async (req, res) => {
     // descontar intento
     user.dailyCatches = Math.max(0, user.dailyCatches - 1);
 
+    // si ya no quedan tiradas, fijar rollResetAt en 12h
+    if (user.dailyCatches === 0 && !user.rollResetAt) {
+      // const twelveHours = 12 * 60 * 60 * 1000; // 12 horas en ms
+      const twelveHours = 25 * 1000;
+      user.rollResetAt = Date.now() + twelveHours;
+    }
     // guardar cambios
     saveUsers(users);
 
@@ -86,10 +92,11 @@ export const searchPok = async (req, res) => {
       updatedEntry,
       isNewPokemon,
       totalSeen: user.seen,
+      rollResetAt: user.rollResetAt,
     });
   } catch (e) {
-    console.error("Error en searchPok:", e);
-    return res.status(500).json({ error: "Error al buscar Pokémon" });
+    console.error("Error in searchPok:", e);
+    return res.status(500).json({ error: "Error fetching Pokémon" });
   }
 };
 
@@ -203,6 +210,48 @@ export const getPodium = (req, res) => {
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: "Error fetching podium" });
+  }
+};
+
+export const getUser = (req, res) => {
+  const { id } = req.params;
+  try {
+    const { users } = readUsers();
+
+    const user = users.find((u) => u.uid === id);
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    res.json(user);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+export const resetRolls = async (req, res) => {
+  try {
+    const id = req.params.id;
+    const { users } = readUsers();
+    const user = users.find((u) => u.uid === id);
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    const now = Date.now();
+
+    // Solo resetea si rollResetAt ya paso
+    if (user.rollResetAt && user.rollResetAt <= now) {
+      user.dailyCatches = 2; // resetea tiradas
+      user.masterBalls += 2;
+      if (user.masterBalls > 6) user.masterBalls = 6;
+      user.rollResetAt = null;
+      saveUsers(users);
+      return res.json(user);
+    } else {
+      // Si aún no pasó el tiempo, no hacer nada
+      return res.status(400).json({ error: "Rolls cannot be reset yet" });
+    }
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
   }
 };
 

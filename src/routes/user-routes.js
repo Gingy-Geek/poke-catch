@@ -1,6 +1,6 @@
 // src/routes/user.routes.js
 import { Router } from "express";
-import { searchPok, catchPokemon, getAllUsers, changeAvatar, getPodium, ping,} from "../controllers/user-controller.js";
+import { searchPok, catchPokemon, getAllUsers, changeAvatar, getPodium, getUser, resetRolls, ping,} from "../controllers/user-controller.js";
 
 import fs from "fs";
 import path from "path";
@@ -12,8 +12,10 @@ router.get("/all", getAllUsers);
 router.get("/podium", getPodium);
 router.get("/ping", ping); 
 // POST /api/users
+router.post("/:id/resetRolls", resetRolls)
+
 router.post("/", (req, res) => {
-  const { uid, displayName } = req.body;
+  const { uid, displayName, avatar } = req.body;
 
   if (!uid) {
     return res.status(400).json({ error: "Faltan datos" });
@@ -29,12 +31,13 @@ router.post("/", (req, res) => {
     user = {
       uid,
       displayName: displayName,
-      profilePic: 0,
+      avatar: avatar || 0,
       pokedex: {},
       masterBalls: 2,
       dailyCatches: 5,
       seen: 0,
-      obtained: 0
+      obtained: 0,
+      rollResetAt: null
     };
 
     data.users.push(user);
@@ -44,20 +47,7 @@ router.post("/", (req, res) => {
   res.json(user);
 });
 
-router.get("/:id", (req, res) => {
-  const { id } = req.params;
-  
-  if (!id) {
-    return res.status(400).json({ error: "Falta el id del usuario" });
-  }
-  
-  const data = JSON.parse(fs.readFileSync(dbPath, "utf8") || '{"users": []}');
-  
-  let user = data.users.find((u) => u.uid == id);
-  console.log(user);
-
-  res.json(user || null);
-});
+router.get("/:id", getUser)
 
 router.post("/searchPok", searchPok);
 router.post("/catchPokemon", catchPokemon);
