@@ -1,6 +1,6 @@
 // src/routes/user.routes.js
 import { Router } from "express";
-import { searchPok, catchPokemon, getAllUsers, changeAvatar, getPodium, getUser, resetRolls, ping,} from "../controllers/user-controller.js";
+import { registerNewUser, searchPok, catchPokemon, getAllUsers, changeAvatar, getPodium, getUser, resetRolls, ping,} from "../controllers/user-controller.js";
 
 import fs from "fs";
 import path from "path";
@@ -11,41 +11,10 @@ const dbPath = path.resolve("src/db/db.json");
 router.get("/all", getAllUsers); 
 router.get("/podium", getPodium);
 router.get("/ping", ping); 
-// POST /api/users
 router.post("/:id/resetRolls", resetRolls)
 
-router.post("/", (req, res) => {
-  const { uid, displayName, avatar } = req.body;
-
-  if (!uid) {
-    return res.status(400).json({ error: "Faltan datos" });
-  }
-
-  const data = JSON.parse(fs.readFileSync(dbPath, "utf8") || '{"users": []}');
- console.log(uid);
- 
-  let user = data.users.find((u) => u.uid === uid);
-
-  // Si no existe, lo creamos
-  if (!user) {
-    user = {
-      uid,
-      displayName: displayName,
-      avatar: avatar || 0,
-      pokedex: {},
-      masterBalls: 2,
-      dailyCatches: 5,
-      seen: 0,
-      obtained: 0,
-      rollResetAt: null
-    };
-
-    data.users.push(user);
-    fs.writeFileSync(dbPath, JSON.stringify(data, null, 2));
-  }
-
-  res.json(user);
-});
+// POST /api/users
+router.post("/", registerNewUser);
 
 router.get("/:id", getUser)
 

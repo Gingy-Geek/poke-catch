@@ -1,23 +1,78 @@
-import fs from "fs";
-import path from "path";
 import { calculateCatch } from "../utils/catch.js";
 import { fetchRandomPokemon } from "../services/pokemon-service.js";
 
-const USERS_FILE = path.resolve("src/db/db.json");
+import { readUsers, saveUsers } from "../services/jsonBinDB.js";
 
-function readUsers() {
-  return JSON.parse(fs.readFileSync(USERS_FILE, "utf-8"));
-}
+export const getUser = async (req, res) => {
+  const { id } = req.params;
+  try {
+    const users = await readUsers();
 
-function saveUsers(users) {
-  fs.writeFileSync(USERS_FILE, JSON.stringify({ users }, null, 2));
-}
+    if (!users) {
+      return res
+        .status(500)
+        .json({ message: "Users data is undefined or invalid" });
+    }
 
-//POST /api/users/searchPok
+    const user = users.find((u) => u.uid === id);
+    console.log(user, "GET USER")
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    console.log(user, "User FOUND")
+    res.json(user);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+export const registerNewUser = async (req, res) => {
+  try {
+    console.log("REGISTRANDO...")
+    const { uid, displayName, avatar } = req.body;
+    
+    if (!uid) {
+      return res.status(400).json({ error: "Faltan datos" });
+    }
+    const users = await readUsers();
+    if (!users) {
+      return res
+        .status(500)
+        .json({ message: "Cant get users from data base" });
+    }
+
+    let user = users.find((u) => u.uid === uid);
+
+    // Si no existe, lo creamos
+    if (!user) {
+      user = {
+        uid,
+        displayName: displayName,
+        avatar: avatar || 0,
+        pokedex: {},
+        masterBalls: 2,
+        dailyCatches: 5,
+        seen: 0,
+        obtained: 0,
+        rollResetAt: null,
+      };
+
+      users.push(user)
+      await saveUsers(users);
+      
+    }
+
+    res.status(200).json(user);
+  } catch (error) {
+    console.error("Error en registerNewUser:", error);
+    res.status(500).json({ error: "Error registrando el usuario" });
+  }
+};
+
 export const searchPok = async (req, res) => {
   try {
     const { uid } = req.body;
-    const { users } = readUsers();
+    const  users  = await readUsers();
 
     const user = users.find((u) => u.uid === uid);
     if (!user) return res.status(404).json({ error: "User not found" });
@@ -76,7 +131,7 @@ export const searchPok = async (req, res) => {
       user.rollResetAt = Date.now() + twelveHours;
     }
     // guardar cambios
-    saveUsers(users);
+    await saveUsers(users);
 
     // respuesta
     const updatedEntry = {
@@ -103,7 +158,7 @@ export const searchPok = async (req, res) => {
 export const catchPokemon = async (req, res) => {
   try {
     const { uid, pokemonId, rarity, bonus = 0, isShiny } = req.body;
-    const { users } = readUsers();
+    const  users  = await readUsers();
     const user = users.find((u) => u.uid === uid);
 
     if (!user) return res.status(404).json({ error: "Usuario no encontrado" });
@@ -123,7 +178,7 @@ export const catchPokemon = async (req, res) => {
       user.obtained += 1;
     }
 
-    saveUsers(users);
+    await saveUsers(users);
 
     const updatedEntry = {
       variants: {
@@ -150,10 +205,11 @@ export const catchPokemon = async (req, res) => {
   }
 };
 
-export const getAllUsers = (req, res) => {
+export const getAllUsers = async (req, res) => {
   try {
-    const { users } = readUsers();
-    console.log(users);
+    const  users  = await readUsers();
+
+    if (!users) return res.status(404).json({ message: "Users not found" });
     res.json(users);
   } catch (error) {
     console.error("Error leyendo la DB:", error);
@@ -161,51 +217,46 @@ export const getAllUsers = (req, res) => {
   }
 };
 
-export const changeAvatar = (req, res) => {
+export const changeAvatar = async (req, res) => {
   try {
     const { uid, avatar } = req.body;
 
-    const { users } = readUsers();
+    const  users  = await readUsers();
     const user = users.find((u) => u.uid === uid);
 
     if (!user) return res.status(404).json({ error: "Usuario no encontrado" });
     user.avatar = avatar;
-    saveUsers(users);
+    await saveUsers(users);
     return res.sendStatus(204);
   } catch (error) {
     res.status(500).json({ error: "Error trying change profile pic" });
   }
 };
 
-export const getPodium = (req, res) => {
+export const getPodium = async (req, res) => {
   try {
-    const { users } = readUsers();
+    const users = await readUsers();
 
-    // Query params: ?page=1&perPage=5
-    const page = parseInt(req.query.page) || 1;
-    const perPage = parseInt(req.query.perPage) || 5;
+    const start = parseInt(req.query.start) || 0;
+    const limit = parseInt(req.query.limit) || 100; // default 100 usuarios por chunk
 
-    // Ordenamos: primero por obtained, luego por seen
-    const sortedUsers = [...users].sort((a, b) => {
-      if (b.obtained !== a.obtained) return b.obtained - a.obtained; // más capturados primero
-      return b.seen - a.seen; // empate: más visto primero
-    });
+    // Ordenar globalmente
+    const sortedUsers = [...users].sort(
+      (a, b) => b.obtained - a.obtained || b.seen - a.seen
+    );
 
-    // Paginar
-    const startIndex = (page - 1) * perPage;
-    const paginatedUsers = sortedUsers.slice(startIndex, startIndex + perPage);
+    const chunk = sortedUsers.slice(start, start + limit);
 
     res.json({
-      page,
-      perPage,
+      start,
+      limit,
       total: users.length,
-      totalPages: Math.ceil(users.length / perPage),
-      users: paginatedUsers.map((u) => ({
+      users: chunk.map(u => ({
         displayName: u.displayName,
         avatar: u.avatar,
         obtained: u.obtained,
-        seen: u.seen,
-      })),
+        seen: u.seen
+      }))
     });
   } catch (error) {
     console.error(error);
@@ -213,29 +264,19 @@ export const getPodium = (req, res) => {
   }
 };
 
-export const getUser = (req, res) => {
-  const { id } = req.params;
-  try {
-    const { users } = readUsers();
 
-    const user = users.find((u) => u.uid === id);
-    if (!user) return res.status(404).json({ message: "User not found" });
 
-    res.json(user);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Server error" });
-  }
-};
 
 export const resetRolls = async (req, res) => {
   try {
     const id = req.params.id;
-    const { users } = readUsers();
+    const  users  = await readUsers();
     const user = users.find((u) => u.uid === id);
     if (!user) return res.status(404).json({ message: "User not found" });
 
     const now = Date.now();
+    console.log(now, "NOW");
+    console.log(user.rollResetAt, "userTime");
 
     // Solo resetea si rollResetAt ya paso
     if (user.rollResetAt && user.rollResetAt <= now) {
@@ -243,7 +284,7 @@ export const resetRolls = async (req, res) => {
       user.masterBalls += 2;
       if (user.masterBalls > 6) user.masterBalls = 6;
       user.rollResetAt = null;
-      saveUsers(users);
+      await saveUsers(users);
       return res.json(user);
     } else {
       // Si aún no pasó el tiempo, no hacer nada
@@ -255,8 +296,11 @@ export const resetRolls = async (req, res) => {
   }
 };
 
+
+
 export const ping = (req, res) => {
   try {
+    console.log("Ping")
     res.json({ status: "ok", message: "Backend funcionando ✅" });
   } catch (error) {
     console.error("Error en ping:", error);
