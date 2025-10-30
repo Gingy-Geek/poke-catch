@@ -22,6 +22,14 @@ export const getUser = async (req, res) => {
 };
 
 export const registerNewUser = async (req, res) => {
+  console.log("🚀 registerNewUser ejecutándose (versión LET)");
+console.log("Archivo ejecutándose:", import.meta.url);
+console.log("Variables de entorno Mongo:", {
+  MONGODB_URI: process.env.MONGODB_URI ? "✅ cargada" : "❌ no cargada",
+  DB_NAME: process.env.DB_NAME,
+  COLLECTION: process.env.COLLECTION
+});
+
   try {
     console.log("REGISTRANDO...")
     const { uid, displayName, avatar } = req.body;
