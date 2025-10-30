@@ -7,7 +7,7 @@ export const getUser = async (req, res) => {
   const { id } = req.params; // el uid del usuario
 
   try {
-    const user = await readUser(id);
+    let user = await readUser(id);
 
     if (!user) {
       return res.status(404).json({ message: "User not found" });
@@ -22,6 +22,14 @@ export const getUser = async (req, res) => {
 };
 
 export const registerNewUser = async (req, res) => {
+  console.log("🚀 registerNewUser ejecutándose (versión LET)");
+console.log("Archivo ejecutándose:", import.meta.url);
+console.log("Variables de entorno Mongo:", {
+  MONGODB_URI: process.env.MONGODB_URI ? "✅ cargada" : "❌ no cargada",
+  DB_NAME: process.env.DB_NAME,
+  COLLECTION: process.env.COLLECTION
+});
+
   try {
     console.log("REGISTRANDO...")
     const { uid, displayName, avatar } = req.body;
@@ -29,7 +37,7 @@ export const registerNewUser = async (req, res) => {
     if (!uid) {
       return res.status(400).json({ error: "Faltan datos" });
     }
-    const user = await readUser(uid);
+    let user = await readUser(uid);
 
     // Si no existe, lo creamos
     if (!user) {
@@ -60,7 +68,7 @@ export const registerNewUser = async (req, res) => {
 export const searchPok = async (req, res) => {
   try {
     const { uid } = req.body;
-    const user = await readUser(uid); 
+    let user = await readUser(uid); 
 
     // sin intentos disponibles
     if (user.dailyCatches == 0) {
@@ -143,7 +151,7 @@ export const searchPok = async (req, res) => {
 export const catchPokemon = async (req, res) => {
   try {
     const { uid, pokemonId, rarity, bonus = 0, isShiny } = req.body;
-    const  user  = await readUser(uid);
+    let  user  = await readUser(uid);
 
     if (!user) return res.status(404).json({ error: "Usuario no encontrado" });
     if (!pokemonId || !rarity)
@@ -205,7 +213,7 @@ export const changeAvatar = async (req, res) => {
   try {
     const { uid, avatar } = req.body;
 
-    const  user = await readUser(uid);
+    let  user = await readUser(uid);
 
     if (!user) return res.status(404).json({ error: "Usuario no encontrado" });
     user.avatar = avatar;
@@ -250,7 +258,7 @@ export const getPodium = async (req, res) => {
 export const resetRolls = async (req, res) => {
   try {
     const id = req.params.id;
-    const  user  = await readAllUsers(id); 
+    let  user  = await readAllUsers(id); 
     if (!user) return res.status(404).json({ message: "User not found" });
 
     const now = Date.now(); 
