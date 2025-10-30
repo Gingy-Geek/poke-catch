@@ -1,27 +1,22 @@
 import { calculateCatch } from "../utils/catch.js";
 import { fetchRandomPokemon } from "../services/pokemon-service.js";
+import { readUser, updateUser, readAllUsers } from "../services/mongoDb.js";
 
-import { readUsers, saveUsers } from "../services/jsonBinDB.js";
 
 export const getUser = async (req, res) => {
-  const { id } = req.params;
-  try {
-    const users = await readUsers();
+  const { id } = req.params; // el uid del usuario
 
-    if (!users) {
-      return res
-        .status(500)
-        .json({ message: "Users data is undefined or invalid" });
+  try {
+    const user = await readUser(id);
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
     }
 
-    const user = users.find((u) => u.uid === id);
-    console.log(user, "GET USER")
-    if (!user) return res.status(404).json({ message: "User not found" });
-
-    console.log(user, "User FOUND")
+    console.log(user, "User FOUND");
     res.json(user);
   } catch (err) {
-    console.error(err);
+    console.error("❌ Error en getUser:", err);
     res.status(500).json({ message: "Server error" });
   }
 };
@@ -34,14 +29,7 @@ export const registerNewUser = async (req, res) => {
     if (!uid) {
       return res.status(400).json({ error: "Faltan datos" });
     }
-    const users = await readUsers();
-    if (!users) {
-      return res
-        .status(500)
-        .json({ message: "Cant get users from data base" });
-    }
-
-    let user = users.find((u) => u.uid === uid);
+    const user = await readUser(uid);
 
     // Si no existe, lo creamos
     if (!user) {
@@ -57,8 +45,8 @@ export const registerNewUser = async (req, res) => {
         rollResetAt: null,
       };
 
-      users.push(user)
-      await saveUsers(users);
+     
+      await updateUser(user);
       
     }
 
@@ -72,10 +60,7 @@ export const registerNewUser = async (req, res) => {
 export const searchPok = async (req, res) => {
   try {
     const { uid } = req.body;
-    const  users  = await readUsers();
-
-    const user = users.find((u) => u.uid === uid);
-    if (!user) return res.status(404).json({ error: "User not found" });
+    const user = await readUser(uid); 
 
     // sin intentos disponibles
     if (user.dailyCatches == 0) {
@@ -131,7 +116,7 @@ export const searchPok = async (req, res) => {
       user.rollResetAt = Date.now() + twelveHours;
     }
     // guardar cambios
-    await saveUsers(users);
+    await updateUser(user);
 
     // respuesta
     const updatedEntry = {
@@ -158,8 +143,7 @@ export const searchPok = async (req, res) => {
 export const catchPokemon = async (req, res) => {
   try {
     const { uid, pokemonId, rarity, bonus = 0, isShiny } = req.body;
-    const  users  = await readUsers();
-    const user = users.find((u) => u.uid === uid);
+    const  user  = await readUser(uid);
 
     if (!user) return res.status(404).json({ error: "Usuario no encontrado" });
     if (!pokemonId || !rarity)
@@ -178,7 +162,7 @@ export const catchPokemon = async (req, res) => {
       user.obtained += 1;
     }
 
-    await saveUsers(users);
+    await updateUser(user);
 
     const updatedEntry = {
       variants: {
@@ -207,7 +191,7 @@ export const catchPokemon = async (req, res) => {
 
 export const getAllUsers = async (req, res) => {
   try {
-    const  users  = await readUsers();
+    const  users  = await readAllUsers();
 
     if (!users) return res.status(404).json({ message: "Users not found" });
     res.json(users);
@@ -221,12 +205,11 @@ export const changeAvatar = async (req, res) => {
   try {
     const { uid, avatar } = req.body;
 
-    const  users  = await readUsers();
-    const user = users.find((u) => u.uid === uid);
+    const  user = await readUser(uid);
 
     if (!user) return res.status(404).json({ error: "Usuario no encontrado" });
     user.avatar = avatar;
-    await saveUsers(users);
+    await updateUser(user);
     return res.sendStatus(204);
   } catch (error) {
     res.status(500).json({ error: "Error trying change profile pic" });
@@ -235,7 +218,7 @@ export const changeAvatar = async (req, res) => {
 
 export const getPodium = async (req, res) => {
   try {
-    const users = await readUsers();
+    const users = await readAllUsers();
 
     const start = parseInt(req.query.start) || 0;
     const limit = parseInt(req.query.limit) || 100; // default 100 usuarios por chunk
@@ -264,19 +247,13 @@ export const getPodium = async (req, res) => {
   }
 };
 
-
-
-
 export const resetRolls = async (req, res) => {
   try {
     const id = req.params.id;
-    const  users  = await readUsers();
-    const user = users.find((u) => u.uid === id);
+    const  user  = await readAllUsers(id); 
     if (!user) return res.status(404).json({ message: "User not found" });
 
-    const now = Date.now();
-    console.log(now, "NOW");
-    console.log(user.rollResetAt, "userTime");
+    const now = Date.now(); 
 
     // Solo resetea si rollResetAt ya paso
     if (user.rollResetAt && user.rollResetAt <= now) {
@@ -284,7 +261,7 @@ export const resetRolls = async (req, res) => {
       user.masterBalls += 2;
       if (user.masterBalls > 6) user.masterBalls = 6;
       user.rollResetAt = null;
-      await saveUsers(users);
+      await updateUser(user);
       return res.json(user);
     } else {
       // Si aún no pasó el tiempo, no hacer nada

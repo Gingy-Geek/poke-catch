@@ -2,11 +2,7 @@
 import { Router } from "express";
 import { registerNewUser, searchPok, catchPokemon, getAllUsers, changeAvatar, getPodium, getUser, resetRolls, ping,} from "../controllers/user-controller.js";
 
-import fs from "fs";
-import path from "path";
-
 const router = Router();
-const dbPath = path.resolve("src/db/db.json");
 
 router.get("/all", getAllUsers); 
 router.get("/podium", getPodium);
