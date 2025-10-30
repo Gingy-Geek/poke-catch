@@ -22,14 +22,6 @@ export const getUser = async (req, res) => {
 };
 
 export const registerNewUser = async (req, res) => {
-  console.log("🚀 registerNewUser ejecutándose (versión LET)");
-console.log("Archivo ejecutándose:", import.meta.url);
-console.log("Variables de entorno Mongo:", {
-  MONGODB_URI: process.env.MONGODB_URI ? "✅ cargada" : "❌ no cargada",
-  DB_NAME: process.env.DB_NAME,
-  COLLECTION: process.env.COLLECTION
-});
-
   try {
     console.log("REGISTRANDO...")
     const { uid, displayName, avatar } = req.body;
@@ -258,10 +250,12 @@ export const getPodium = async (req, res) => {
 export const resetRolls = async (req, res) => {
   try {
     const id = req.params.id;
-    let  user  = await readAllUsers(id); 
+    let  user  = await readUser(id); 
     if (!user) return res.status(404).json({ message: "User not found" });
 
     const now = Date.now(); 
+    console.log(now)
+    console.log(user.rollResetAt)
 
     // Solo resetea si rollResetAt ya paso
     if (user.rollResetAt && user.rollResetAt <= now) {

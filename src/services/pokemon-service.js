@@ -9,7 +9,7 @@ export const fetchRandomPokemon = async () => {
   const res = await fetch(`https://pokeapi.co/api/v2/pokemon/${id}`);
   const data = await res.json();
 
-  const isShiny = Math.random() < 0.5;
+  const isShiny = Math.random() < 0.15;
 
   const nameLower = data.name.toLowerCase();
 
