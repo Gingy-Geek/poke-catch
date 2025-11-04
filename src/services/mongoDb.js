@@ -62,7 +62,7 @@ export async function updateUser(user) {
     const result = await collection.updateOne(filter, update, { upsert: true });
 
     if (result.upsertedCount > 0) {
-      console.log("✅ Usuario insertado:", result.upsertedId);
+      console.log("✅ Usuario insertado", result.upsertedId);
     } else if (result.modifiedCount > 0) {
       console.log("✅ Usuario actualizado:", user.uid);
     } else {

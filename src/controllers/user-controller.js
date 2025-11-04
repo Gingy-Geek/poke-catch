@@ -12,8 +12,6 @@ export const getUser = async (req, res) => {
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
-
-    console.log(user, "User FOUND");
     res.json(user);
   } catch (err) {
     console.error("❌ Error en getUser:", err);
@@ -111,9 +109,9 @@ export const searchPok = async (req, res) => {
 
     // si ya no quedan tiradas, fijar rollResetAt en 12h
     if (user.dailyCatches === 0 && !user.rollResetAt) {
-      // const twelveHours = 12 * 60 * 60 * 1000; // 12 horas en ms
-      const twelveHours = 25 * 1000;
-      user.rollResetAt = Date.now() + twelveHours;
+      const resetMinutes = Number(process.env.ROLL_RESET_MINUTES || 720); // default 12h
+      const resetTimeMs = resetMinutes * 60 * 1000;
+      user.rollResetAt = Date.now() + resetTimeMs;
     }
     // guardar cambios
     await updateUser(user);
@@ -254,8 +252,6 @@ export const resetRolls = async (req, res) => {
     if (!user) return res.status(404).json({ message: "User not found" });
 
     const now = Date.now(); 
-    console.log(now)
-    console.log(user.rollResetAt)
 
     // Solo resetea si rollResetAt ya paso
     if (user.rollResetAt && user.rollResetAt <= now) {
@@ -264,11 +260,8 @@ export const resetRolls = async (req, res) => {
       if (user.masterBalls > 6) user.masterBalls = 6;
       user.rollResetAt = null;
       await updateUser(user);
-      return res.json(user);
-    } else {
-      // Si aún no pasó el tiempo, no hacer nada
-      return res.status(400).json({ error: "Rolls cannot be reset yet" });
     }
+    return res.json(user);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Server error" });
