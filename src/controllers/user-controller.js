@@ -248,19 +248,30 @@ export const getPodium = async (req, res) => {
 export const resetRolls = async (req, res) => {
   try {
     const id = req.params.id;
-    let  user  = await readUser(id); 
+    let user = await readUser(id);
     if (!user) return res.status(404).json({ message: "User not found" });
 
-    const now = Date.now(); 
+    const now = Date.now();
 
-    // Solo resetea si rollResetAt ya paso
+    const CATCH_PER_RESET = Number(process.env.CATCH_PER_RESET) || 5;
+    const MASTERBALL_PER_RESET = Number(process.env.MASTERBALL_PER_RESET) || 1;
+    const MASTERBALL_MAX = Number(process.env.MASTERBALL_MAX) || 3;
+
+    // reset si ya expiro
     if (user.rollResetAt && user.rollResetAt <= now) {
-      user.dailyCatches = 2; // resetea tiradas
-      user.masterBalls += 2;
-      if (user.masterBalls > 6) user.masterBalls = 6;
+      user.dailyCatches = CATCH_PER_RESET;
+
+      // Aumentar masterballs, pero con tope
+      user.masterBalls = Math.min(
+        user.masterBalls + MASTERBALL_PER_RESET,
+        MASTERBALL_MAX
+      );
+
       user.rollResetAt = null;
+
       await updateUser(user);
     }
+
     return res.json(user);
   } catch (err) {
     console.error(err);
@@ -279,3 +290,4 @@ export const ping = (req, res) => {
     res.status(500).json({ error: "Error en el ping del servidor" });
   }
 };
+
