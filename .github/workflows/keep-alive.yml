@@ -3,7 +3,7 @@ name: Keep Render Awake
 
 on:
   schedule:
-    - cron: "* * * * *"   # cada 1 minuto (UTC)
+    - cron: "*/10 * * * *"   # cada 10 minutos (UTC)
   workflow_dispatch:
 
 jobs:
