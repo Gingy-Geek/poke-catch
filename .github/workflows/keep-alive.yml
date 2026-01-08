@@ -3,7 +3,7 @@ name: Keep Render Awake
 
 on:
   schedule:
-    - cron: "*/10 * * * *"   # cada 10 minutos (UTC)
+    - cron: "*/20 10-22 * * 1-5"   # cada 20 min, 10-22 UTC (7-19 Argentina), lun-vie
   workflow_dispatch:
 
 jobs:
