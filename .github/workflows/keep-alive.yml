@@ -1,0 +1,14 @@
+name: Test Ping Render
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Say hello
+        run: echo "Hola Ariel, GitHub Actions está funcionando"
+
+      - name: Ping your API
+        run: curl -i https://poke-catch-uqgj.onrender.com/api/users/ping || true
