@@ -1,7 +1,7 @@
 import { calculateCatch } from "../utils/catch.js";
 import { fetchRandomPokemon } from "../services/pokemon-service.js";
 import { readUser, updateUser, readAllUsers } from "../services/mongoDb.js";
-
+import { getCollection } from "../services/mongoDb.js";
 
 export const getUser = async (req, res) => {
   const { id } = req.params; // el uid del usuario
@@ -281,13 +281,28 @@ export const resetRolls = async (req, res) => {
 
 
 
-export const ping = (req, res) => {
+
+
+export const ping = async (req, res) => {
   try {
-    console.log("Ping")
-    res.json({ status: "ok", message: "Backend funcionando ✅" });
+    console.log("🏓 Ping backend");
+
+    // 🔹 Fuerza conexión + operación real en Mongo
+    const collection = await getCollection();
+    await collection.findOne({}, { projection: { _id: 1 } });
+
+    console.log("🍃 Ping MongoDB OK");
+
+    res.json({
+      status: "ok",
+      message: "Backend y Mongo funcionando ✅"
+    });
+
   } catch (error) {
-    console.error("Error en ping:", error);
-    res.status(500).json({ error: "Error en el ping del servidor" });
+    console.error("❌ Error en ping:", error);
+    res.status(500).json({
+      status: "error",
+      message: "Error en ping backend/Mongo"
+    });
   }
 };
-
