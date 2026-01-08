@@ -1,14 +1,14 @@
-name: Test Ping Render
+name: Keep Render Awake
 
 on:
+  schedule:
+    - cron: "* * * * *"   # cada 1 minuto (UTC)
   workflow_dispatch:
 
 jobs:
-  test:
+  ping:
     runs-on: ubuntu-latest
     steps:
-      - name: Say hello
-        run: echo "Hola Ariel, GitHub Actions está funcionando"
-
-      - name: Ping your API
-        run: curl -i https://poke-catch-uqgj.onrender.com/api/users/ping || true
+      - name: Ping Render service
+        run: |
+          curl -L --silent --show-error --fail https://poke-catch-uqgj.onrender.com/api/users/ping || true
